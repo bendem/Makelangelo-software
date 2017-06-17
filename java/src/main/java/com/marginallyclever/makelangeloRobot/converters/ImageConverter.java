@@ -1,16 +1,18 @@
 package com.marginallyclever.makelangeloRobot.converters;
 
-import java.io.IOException;
-import java.io.Writer;
-
-import javax.swing.JPanel;
-
 import com.jogamp.opengl.GL2;
-import com.marginallyclever.makelangeloRobot.TransformedImage;
-import com.marginallyclever.makelangeloRobot.loadAndSave.LoadAndSaveImage;
 import com.marginallyclever.makelangeloRobot.ImageManipulator;
 import com.marginallyclever.makelangeloRobot.MakelangeloRobotDecorator;
+import com.marginallyclever.makelangeloRobot.TransformedImage;
+import com.marginallyclever.makelangeloRobot.loadAndSave.LoadAndSaveImage;
 import com.marginallyclever.makelangeloRobot.settings.MakelangeloRobotSettings;
+
+import javax.swing.*;
+import java.io.IOException;
+import java.io.Writer;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.ServiceLoader;
 
 /**
  * Converts a BufferedImage to gcode
@@ -28,6 +30,24 @@ public abstract class ImageConverter extends ImageManipulator implements Makelan
 	TransformedImage sourceImage;
 	LoadAndSaveImage loadAndSave;
 	boolean keepIterating=false;
+
+	public static List<ImageConverter> loadConverters() {
+		List<ImageConverter> converters = new ArrayList<>();
+		for (ImageConverter imageConverter : ServiceLoader.load(ImageConverter.class)) {
+			converters.add(imageConverter);
+		}
+		return converters;
+	}
+
+	public static ImageConverter loadByName(String name) {
+		List<ImageConverter> converters = loadConverters();
+		for (ImageConverter converter : converters) {
+			if (converter.getName().equals(name)) {
+				return converter;
+			}
+		}
+		return null;
+	}
 	
 	public void setLoadAndSave(LoadAndSaveImage arg0) {
 		loadAndSave = arg0;

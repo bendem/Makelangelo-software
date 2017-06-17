@@ -8,31 +8,6 @@ package com.marginallyclever.makelangelo;
 
 // io functions
 
-import java.awt.BorderLayout;
-import java.awt.Container;
-import java.awt.Dimension;
-import java.awt.Point;
-import java.awt.Toolkit;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.KeyEvent;
-import java.awt.event.WindowEvent;
-import java.awt.event.WindowListener;
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.util.prefs.Preferences;
-
-import javax.swing.JFrame;
-import javax.swing.JMenu;
-import javax.swing.JMenuBar;
-import javax.swing.JMenuItem;
-import javax.swing.JOptionPane;
-import javax.swing.JPanel;
-import javax.swing.JSplitPane;
-import javax.swing.KeyStroke;
-
 import com.jogamp.opengl.GLCapabilities;
 import com.jogamp.opengl.util.FPSAnimator;
 import com.marginallyclever.communications.ConnectionManager;
@@ -41,10 +16,25 @@ import com.marginallyclever.makelangelo.preferences.MakelangeloAppPreferences;
 import com.marginallyclever.makelangeloRobot.MakelangeloRobot;
 import com.marginallyclever.makelangeloRobot.MakelangeloRobotListener;
 import com.marginallyclever.makelangeloRobot.MakelangeloRobotPanel;
+import com.marginallyclever.makelangeloRobot.converters.ImageConverter;
+import com.marginallyclever.makelangeloRobot.loadAndSave.LoadAndSaveFileType;
 import com.marginallyclever.makelangeloRobot.settings.MakelangeloRobotSettings;
 import com.marginallyclever.makelangeloRobot.settings.MakelangeloRobotSettingsListener;
 import com.marginallyclever.util.PreferencesHelper;
 import com.marginallyclever.util.PropertiesFileHelper;
+
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.*;
+import java.io.*;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Iterator;
+import java.util.ServiceLoader;
+import java.util.prefs.Preferences;
 
 
 /**
@@ -108,7 +98,15 @@ implements ActionListener, WindowListener, MakelangeloRobotListener, Makelangelo
 	public static void main(String[] argv) {
 		Log.clear();
 		CommandLineOptions.setFromMain(argv);
-		
+		Translator.start(!CommandLineOptions.hasOption("--no-gui"));
+
+		if (CommandLineOptions.hasOption("--list-converters")) {
+			for (ImageConverter converter : ImageConverter.loadConverters()) {
+				System.out.println(converter.getName());
+			}
+			return;
+		}
+
 		//Schedule a job for the event-dispatching thread:
 		//creating and showing this application's GUI.
 		javax.swing.SwingUtilities.invokeLater(new Runnable() {
@@ -122,9 +120,7 @@ implements ActionListener, WindowListener, MakelangeloRobotListener, Makelangelo
 
 	public Makelangelo() {
 		appPreferences = new MakelangeloAppPreferences(this);
-		
-		Translator.start();
-		
+
 		// create a robot and listen to it for important news
 		robot = new MakelangeloRobot();
 		robot.addListener(this);
@@ -132,13 +128,68 @@ implements ActionListener, WindowListener, MakelangeloRobotListener, Makelangelo
 		
 		myTransferHandler = new MakelangeloTransferHandler(robot);
 		connectionManager = new ConnectionManager();
-		
-		createAndShowGUI();
+
+		if (CommandLineOptions.hasOption("--no-gui")) {
+			String file = CommandLineOptions.getOption("file");
+			if (file == null) {
+				System.out.println("Missing --file argument, please pass --file=<path>");
+				System.exit(1);
+			}
+			String absolutePath = Paths.get(file).toAbsolutePath().toString();
+			importFile(absolutePath);
+		} else {
+			createAndShowGUI();
+		}
 
 		if (prefs.getBoolean("Check for updates", false)) checkForUpdate(true);
 	}
-	
-		
+
+	private void importFile(String path) {
+		Log.message(Translator.get("OpeningFile") + path + "...");
+		boolean attempted = false;
+
+		ServiceLoader<LoadAndSaveFileType> imageLoaders = ServiceLoader.load(LoadAndSaveFileType.class);
+		Iterator<LoadAndSaveFileType> i = imageLoaders.iterator();
+		while (i.hasNext()) {
+			LoadAndSaveFileType loader = i.next();
+			if (!loader.canLoad()) continue;
+			if (!loader.canLoad(path)) continue;
+
+			attempted = true;
+			boolean success;
+			try (final InputStream fileInputStream = new FileInputStream(path)) {
+				success = loader.load(fileInputStream, robot);
+			} catch (IOException e) {
+				throw new RuntimeException(e);
+			}
+
+			// TODO don't rely on success to be true, load may not have finished yet.
+
+			if (success) {
+				Log.message(Translator.get("Finished"));
+
+				String output = CommandLineOptions.getOption("output");
+				if (output != null) {
+					Path file = Paths.get(output).resolve(loader.getClass().getName());
+					try (OutputStream out = Files.newOutputStream(file)) {
+						String converter = CommandLineOptions.getOption("converter");
+						loader.setConverter(ImageConverter.loadByName(converter));
+						loader.save(out, robot);
+					} catch (IOException e) {
+						throw new RuntimeException(e);
+					}
+				}
+			}
+
+			if (success) break;
+		}
+
+		if (!attempted) {
+			Log.error(Translator.get("UnknownFileType"));
+		}
+	}
+
+
 	// The user has done something.  respond to it.
 	@Override
 	public void actionPerformed(ActionEvent e) {

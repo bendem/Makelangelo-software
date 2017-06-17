@@ -1,53 +1,26 @@
 package com.marginallyclever.makelangeloRobot;
 
-import java.awt.Dimension;
-import java.awt.Frame;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.awt.GridLayout;
-import java.awt.Insets;
+import com.marginallyclever.communications.NetworkConnection;
+import com.marginallyclever.makelangelo.*;
+import com.marginallyclever.makelangeloRobot.generators.ImageGenerator;
+import com.marginallyclever.makelangeloRobot.loadAndSave.LoadAndSaveFileType;
+import com.marginallyclever.makelangeloRobot.loadAndSave.LoadAndSaveGCode;
+import com.marginallyclever.makelangeloRobot.settings.MakelangeloSettingsDialog;
+
+import javax.swing.*;
+import javax.swing.filechooser.FileFilter;
+import javax.swing.filechooser.FileNameExtensionFilter;
+import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.io.Writer;
+import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ServiceLoader;
-
-import javax.swing.BorderFactory;
-import javax.swing.BoxLayout;
-import javax.swing.JButton;
-import javax.swing.JComboBox;
-import javax.swing.JDialog;
-import javax.swing.JFileChooser;
-import javax.swing.JLabel;
-import javax.swing.JOptionPane;
-import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.JTextField;
-import javax.swing.filechooser.FileFilter;
-import javax.swing.filechooser.FileNameExtensionFilter;
-
-import com.marginallyclever.communications.NetworkConnection;
-import com.marginallyclever.makelangelo.CollapsiblePanel;
-import com.marginallyclever.makelangelo.Log;
-import com.marginallyclever.makelangelo.Makelangelo;
-import com.marginallyclever.makelangelo.SoundSystem;
-import com.marginallyclever.makelangelo.Translator;
-import com.marginallyclever.makelangeloRobot.generators.ImageGenerator;
-import com.marginallyclever.makelangeloRobot.loadAndSave.LoadAndSaveFileType;
-import com.marginallyclever.makelangeloRobot.loadAndSave.LoadAndSaveGCode;
-import com.marginallyclever.makelangeloRobot.settings.MakelangeloSettingsDialog;
 
 /**
  * Control panel for a Makelangelo robot
@@ -754,7 +727,12 @@ public class MakelangeloRobotPanel extends JScrollPane implements ActionListener
 		// where to save temp output file?
 		File tempFile;
 		try {
-			tempFile = File.createTempFile("gcode", ".ngc");
+			String outputDir = CommandLineOptions.getOption("output");
+			File out = null;
+			if (outputDir != null) {
+				out = new File(outputDir);
+			}
+			tempFile = File.createTempFile("gcode", ".ngc", out);
 		} catch (Exception e) {
 			e.printStackTrace();
 			return;
@@ -867,10 +845,10 @@ public class MakelangeloRobotPanel extends JScrollPane implements ActionListener
 	 * @param loader the plugin to use
 	 * @return true if load is successful.
 	 */
-	public boolean openFileOnDemandWithLoader(String filename,LoadAndSaveFileType loader) {
+	public boolean openFileOnDemandWithLoader(String filename, LoadAndSaveFileType loader) {
 		boolean success = false;
 		try (final InputStream fileInputStream = new FileInputStream(filename)) {
-			success=loader.load(fileInputStream,robot);
+			success = loader.load(fileInputStream, robot);
 		} catch(IOException e) {
 			e.printStackTrace();
 		}
@@ -905,7 +883,7 @@ public class MakelangeloRobotPanel extends JScrollPane implements ActionListener
 			if(!loader.canLoad(filename)) continue;
 			
 			attempted=true;
-			success=openFileOnDemandWithLoader(filename,loader);
+			success = openFileOnDemandWithLoader(filename,loader);
 			if(success==true) break;
 		}
 		

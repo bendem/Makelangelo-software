@@ -1,36 +1,13 @@
 package com.marginallyclever.makelangeloRobot.loadAndSave;
 
-import java.awt.GridLayout;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.io.Writer;
-import java.nio.charset.StandardCharsets;
-import java.util.Iterator;
-import java.util.LinkedHashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Set;
-
-import javax.swing.JCheckBox;
-import javax.swing.JOptionPane;
-import javax.swing.JPanel;
-import javax.swing.filechooser.FileNameExtensionFilter;
-
-import org.kabeja.dxf.Bounds;
-import org.kabeja.dxf.DXFConstants;
-import org.kabeja.dxf.DXFDocument;
-import org.kabeja.dxf.DXFEntity;
-import org.kabeja.dxf.DXFLWPolyline;
-import org.kabeja.dxf.DXFLayer;
-import org.kabeja.dxf.DXFLine;
-import org.kabeja.dxf.DXFPolyline;
-import org.kabeja.dxf.DXFSpline;
-import org.kabeja.dxf.DXFVertex;
+import com.marginallyclever.gcode.GCodeFile;
+import com.marginallyclever.makelangelo.CommandLineOptions;
+import com.marginallyclever.makelangelo.Log;
+import com.marginallyclever.makelangelo.Makelangelo;
+import com.marginallyclever.makelangelo.Translator;
+import com.marginallyclever.makelangeloRobot.ImageManipulator;
+import com.marginallyclever.makelangeloRobot.MakelangeloRobot;
+import org.kabeja.dxf.*;
 import org.kabeja.dxf.helpers.DXFSplineConverter;
 import org.kabeja.dxf.helpers.Point;
 import org.kabeja.parser.DXFParser;
@@ -38,12 +15,13 @@ import org.kabeja.parser.ParseException;
 import org.kabeja.parser.Parser;
 import org.kabeja.parser.ParserBuilder;
 
-import com.marginallyclever.gcode.GCodeFile;
-import com.marginallyclever.makelangelo.Log;
-import com.marginallyclever.makelangelo.Makelangelo;
-import com.marginallyclever.makelangelo.Translator;
-import com.marginallyclever.makelangeloRobot.ImageManipulator;
-import com.marginallyclever.makelangeloRobot.MakelangeloRobot;
+import javax.swing.*;
+import javax.swing.filechooser.FileNameExtensionFilter;
+import java.awt.*;
+import java.io.*;
+import java.nio.charset.StandardCharsets;
+import java.util.*;
+import java.util.List;
 
 /**
  * Reads in DXF file and converts it to a temporary gcode file, then calls LoadGCode. 
@@ -51,9 +29,9 @@ import com.marginallyclever.makelangeloRobot.MakelangeloRobot;
  *
  */
 public class LoadAndSaveDXF extends ImageManipulator implements LoadAndSaveFileType {
-	private static boolean shouldScaleOnLoad=true;
-	private static boolean shouldInfillOnLoad=true;
-	private static boolean shouldOptimizePathingOnLoad=false;
+	private static boolean shouldScaleOnLoad = true;
+	private static boolean shouldInfillOnLoad = true;
+	private static boolean shouldOptimizePathingOnLoad = false;
 	private static FileNameExtensionFilter filter = new FileNameExtensionFilter(Translator.get("FileTypeDXF"), "dxf");
 	private double previousX,previousY;
 	private double scale,imageCenterX,imageCenterY;
@@ -201,7 +179,12 @@ public class LoadAndSaveDXF extends ImageManipulator implements LoadAndSaveFileT
 		// set up a temporary file
 		File tempFile;
 		try {
-			tempFile = File.createTempFile("temp", ".ngc");
+			String outputDir = CommandLineOptions.getOption("output");
+			File out = null;
+			if (outputDir != null) {
+				out = new File(outputDir);
+			}
+			tempFile = File.createTempFile("gcode", ".ngc", out);
 		} catch (IOException e1) {
 			e1.printStackTrace();
 			return false;

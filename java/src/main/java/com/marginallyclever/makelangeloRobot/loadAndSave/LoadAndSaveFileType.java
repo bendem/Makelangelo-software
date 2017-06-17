@@ -6,6 +6,7 @@ import java.io.OutputStream;
 import javax.swing.filechooser.FileNameExtensionFilter;
 
 import com.marginallyclever.makelangeloRobot.MakelangeloRobot;
+import com.marginallyclever.makelangeloRobot.converters.ImageConverter;
 
 /**
  * Interface for the service handler
@@ -44,6 +45,8 @@ public interface LoadAndSaveFileType {
 	 * @return true if this plugin can save this file.
 	 */
 	public boolean canSave(String filename);
+
+	default void setConverter(ImageConverter converter) {}
 	
 	/**
 	 * attempt to load a file into the system from a given stream

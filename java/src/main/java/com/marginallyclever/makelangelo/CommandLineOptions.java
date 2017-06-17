@@ -1,29 +1,33 @@
 package com.marginallyclever.makelangelo;
 
+import java.util.Arrays;
+import java.util.LinkedHashSet;
+import java.util.Set;
+
 /**
  * Store command line options for use in the app
- * @author Admin
  *
+ * @author Admin
  */
 public class CommandLineOptions {
-	protected static String [] argv;
-	
-	static void setFromMain(String [] argv) {
-		CommandLineOptions.argv = argv;
 
-		for(int i=0;i<argv.length;++i) {
-			String msg = "START OPTION "+argv[i];
-			Log.message(msg);
-			System.out.println(msg);
-		}
+	private static final Set<String> args = new LinkedHashSet<>();
+
+	static void setFromMain(String[] argv) {
+		args.addAll(Arrays.asList(argv));
 	}
-	
-	static public boolean hasOption(String option) {
-		for(int i=0;i<argv.length;++i) {
-			if(argv[i].equals(option)) {
-				return true;
+
+	public static boolean hasOption(String option) {
+		return args.contains(option);
+	}
+
+	public static String getOption(String option) {
+		String search = "--" + option + "=";
+		for (String arg : args) {
+			if (arg.startsWith(search)) {
+				return arg.substring(search.length());
 			}
 		}
-		return false;
+		return null;
 	}
 }

@@ -70,7 +70,7 @@ public final class Translator {
 	/**
 	 *
 	 */
-	static public void start() {
+	static public void start(boolean askUser) {
 		// find the english name of the default language.
 		Locale locale = Locale.getDefault();
 		defaultLanguage = locale.getDisplayLanguage(Locale.ENGLISH);
@@ -79,7 +79,7 @@ public final class Translator {
 		loadLanguages();
 		loadConfig();
 
-		if (isThisTheFirstTimeLoadingLanguageFiles()) {
+		if (askUser && isThisTheFirstTimeLoadingLanguageFiles()) {
 			LanguagePreferences.chooseLanguage();
 		}
 	}

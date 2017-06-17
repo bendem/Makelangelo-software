@@ -668,7 +668,7 @@ public class MakelangeloRobot implements NetworkConnectionListener {
 		return myPanel;
 	}
 	
-	public MakelangeloRobotPanel getControlPanel() {		
+	public MakelangeloRobotPanel getControlPanel() {
 		return myPanel;
 	}
 

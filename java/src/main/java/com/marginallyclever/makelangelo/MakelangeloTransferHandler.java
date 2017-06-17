@@ -1,13 +1,12 @@
 package com.marginallyclever.makelangelo;
 
+import com.marginallyclever.makelangeloRobot.MakelangeloRobot;
+
+import javax.swing.*;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.Transferable;
 import java.io.File;
 import java.util.List;
-
-import javax.swing.TransferHandler;
-
-import com.marginallyclever.makelangeloRobot.MakelangeloRobot;
 
 /**
  * support for drag & drop files into Makelangelo software.
@@ -61,4 +60,5 @@ public class MakelangeloTransferHandler  extends TransferHandler {
         // Load the file.
         return robot.getControlPanel().openFileOnDemand(filename);
     }
+
 }

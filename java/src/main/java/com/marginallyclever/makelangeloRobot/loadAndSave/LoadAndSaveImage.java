@@ -1,47 +1,29 @@
 package com.marginallyclever.makelangeloRobot.loadAndSave;
 
-import java.awt.Dimension;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.awt.Insets;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.beans.PropertyChangeEvent;
-import java.beans.PropertyChangeListener;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.io.Writer;
-import java.nio.charset.StandardCharsets;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Objects;
-import java.util.ServiceLoader;
-import java.util.Set;
-import java.util.prefs.Preferences;
-
-import javax.imageio.ImageIO;
-import javax.swing.JComboBox;
-import javax.swing.JLabel;
-import javax.swing.JOptionPane;
-import javax.swing.JPanel;
-import javax.swing.ProgressMonitor;
-import javax.swing.SwingWorker;
-import javax.swing.filechooser.FileNameExtensionFilter;
-
+import com.marginallyclever.makelangelo.CommandLineOptions;
 import com.marginallyclever.makelangelo.Log;
-import com.marginallyclever.makelangeloRobot.TransformedImage;
 import com.marginallyclever.makelangelo.Translator;
 import com.marginallyclever.makelangeloRobot.ImageManipulator;
 import com.marginallyclever.makelangeloRobot.MakelangeloRobot;
 import com.marginallyclever.makelangeloRobot.MakelangeloRobotPanel;
+import com.marginallyclever.makelangeloRobot.TransformedImage;
 import com.marginallyclever.makelangeloRobot.converters.ImageConverter;
 import com.marginallyclever.makelangeloRobot.generators.Generator_Text;
 import com.marginallyclever.util.PreferencesHelper;
+
+import javax.imageio.ImageIO;
+import javax.swing.*;
+import javax.swing.filechooser.FileNameExtensionFilter;
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.beans.PropertyChangeEvent;
+import java.beans.PropertyChangeListener;
+import java.io.*;
+import java.nio.charset.StandardCharsets;
+import java.util.*;
+import java.util.List;
+import java.util.prefs.Preferences;
 
 /**
  * LoadImage uses an InputStream of data to create gcode. 
@@ -54,7 +36,7 @@ public class LoadAndSaveImage extends ImageManipulator implements LoadAndSaveFil
 	private Preferences prefs = PreferencesHelper
 			.getPreferenceNode(PreferencesHelper.MakelangeloPreferenceKey.LEGACY_MAKELANGELO_ROOT);
 
-	private ServiceLoader<ImageConverter> converters;
+	private final List<ImageConverter> converters;
 	private ImageConverter chosenConverter;
 	private TransformedImage img;
 	private MakelangeloRobot chosenRobot;
@@ -77,24 +59,13 @@ public class LoadAndSaveImage extends ImageManipulator implements LoadAndSaveFil
 	}
 	private static FileNameExtensionFilter filter = new FileNameExtensionFilter(Translator.get("FileTypeImage"),
 			IMAGE_FILE_EXTENSIONS.toArray(new String[IMAGE_FILE_EXTENSIONS.size()]));
-	private String[] imageConverterNames;
+	private final List<String> imageConverterNames;
 	
 	public LoadAndSaveImage() {
-		converters = ServiceLoader.load(ImageConverter.class);
-		Iterator<ImageConverter> ici = converters.iterator();
-		int i=0;
-		while(ici.hasNext()) {
-			ici.next();
-			i++;
-		}
-				
-		imageConverterNames = new String[i];
-
-		i=0;
-		ici = converters.iterator();
-		while (ici.hasNext()) {
-			ImageManipulator f = ici.next();
-			imageConverterNames[i++] = f.getName();
+		converters = ImageConverter.loadConverters();
+		imageConverterNames = new ArrayList<>();
+		for (ImageConverter converter : converters) {
+			imageConverterNames.add(converter.getName());
 		}
 	}
 	
@@ -111,7 +82,7 @@ public class LoadAndSaveImage extends ImageManipulator implements LoadAndSaveFil
 
 	protected boolean chooseImageConversionOptions(MakelangeloRobot robot) {
 		conversionPanel = new JPanel(new GridBagLayout());
-		conversionOptions = new JComboBox<String>(imageConverterNames);
+		conversionOptions = new JComboBox<String>(imageConverterNames.toArray(new String[0]));
 		converterOptionsContainer = new JPanel();
 		converterOptionsContainer.setPreferredSize(new Dimension(450,300));
 		
@@ -160,7 +131,7 @@ public class LoadAndSaveImage extends ImageManipulator implements LoadAndSaveFil
 		return false;
 	}
 	
-	private void changeConverter(JComboBox<String> options,MakelangeloRobot robot) {
+	private void changeConverter(JComboBox<String> options, MakelangeloRobot robot) {
 		//System.out.println("Changing converter");
 		stopSwingWorker();
 
@@ -181,10 +152,10 @@ public class LoadAndSaveImage extends ImageManipulator implements LoadAndSaveFil
 	}
 	
 	public void reconvert() {
-		changeConverter(conversionOptions,chosenRobot);
+		changeConverter(conversionOptions, chosenRobot);
 	}
 	
-	private ImageConverter getConverter(int arg0) throws IndexOutOfBoundsException {
+	public ImageConverter getConverter(int arg0) throws IndexOutOfBoundsException {
 		Iterator<ImageConverter> ici = converters.iterator();
 		int i=0;
 		while(ici.hasNext()) {
@@ -204,7 +175,7 @@ public class LoadAndSaveImage extends ImageManipulator implements LoadAndSaveFil
 	 * Load and convert the image in the chosen style
 	 * @return false if loading cancelled or failed.
 	 */
-	public boolean load(InputStream in,MakelangeloRobot robot) {
+	public boolean load(InputStream in, MakelangeloRobot robot) {
 		try {
 			img = new TransformedImage( ImageIO.read(in) );
 		} catch (IOException e1) {
@@ -233,9 +204,11 @@ public class LoadAndSaveImage extends ImageManipulator implements LoadAndSaveFil
 		pm.setMillisToPopup(0);
 		
 		chosenRobot = robot;
-		
-		chooseImageConversionOptions(robot);
-		
+
+		if (!CommandLineOptions.hasOption("--no-gui")) {
+			chooseImageConversionOptions(robot);
+		}
+
 		return true;
 	}
 		
@@ -271,7 +244,12 @@ public class LoadAndSaveImage extends ImageManipulator implements LoadAndSaveFil
 				// FIXME going through temp files every time may be thrashing SSDs.
 				File tempFile;
 				try {
-					tempFile = File.createTempFile("gcode", ".ngc");
+					String outputDir = CommandLineOptions.getOption("output");
+					File out = null;
+					if (outputDir != null) {
+						out = new File(outputDir);
+					}
+					tempFile = File.createTempFile("gcode", ".ngc", out);
 				} catch (Exception e) {
 					e.printStackTrace();
 					return null;
@@ -361,11 +339,28 @@ public class LoadAndSaveImage extends ImageManipulator implements LoadAndSaveFil
 	}
 	
 	public boolean canSave(String filename) {
-		return false;
+		return true;
 	}
-	
-	public boolean save(OutputStream outputStream,MakelangeloRobot robot) {
-		return false;
+
+	@Override
+	public void setConverter(ImageConverter converter) {
+		chosenConverter = converter;
+	}
+
+	public boolean save(OutputStream outputStream, MakelangeloRobot robot) {
+		ImageConverter converter = chosenConverter;
+		converter.setLoadAndSave(this);
+		converter.setRobot(robot);
+		converter.setImage(img);
+
+		while (converter.iterate());
+
+		try {
+			converter.finish(new OutputStreamWriter(outputStream, StandardCharsets.UTF_8));
+		} catch (IOException e) {
+			throw new UncheckedIOException(e);
+		}
+		return true;
 	}
 
 	@Override

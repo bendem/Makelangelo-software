@@ -37,9 +37,9 @@ public class Converter_Crosshatch extends ImageConverter {
 		liftPen(out);
 		machine.writeChangeTo(out);
 		convertPaperSpace(img, out);
-		
+
 		liftPen(out);
-	    moveTo(out, (float)machine.getHomeX(), (float)machine.getHomeY(),true);
+	    moveTo(out, (float) machine.getHomeX(), (float) machine.getHomeY(),true);
 	}
 
 
@@ -56,16 +56,16 @@ public class Converter_Crosshatch extends ImageConverter {
 		double halfStep = stepSize/2.0;
 		float px,py;
 		int v;
-		
+
 		lineTo(out, x1, y1, true);
-		
+
 		for(float i=0;i<=steps;++i) {
 			px = (float)(x1 + dx * (i/steps));
 			py = (float)(y1 + dy * (i/steps));
 			if( isInsidePaperMargins(px, py)) {
 				v = img.sample( px - halfStep, py - halfStep, px + halfStep, py + halfStep);
 			} else {
-				v=255;
+				v = 255;
 			}
 			lineTo(out, px, py, v >= level);
 		}

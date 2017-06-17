@@ -1,41 +1,24 @@
 package com.marginallyclever.makelangeloRobot.loadAndSave;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.io.Writer;
-import java.nio.charset.StandardCharsets;
-
-import javax.swing.filechooser.FileNameExtensionFilter;
-
-import org.apache.batik.anim.dom.SAXSVGDocumentFactory;
-import org.apache.batik.anim.dom.SVGOMPathElement;
-import org.apache.batik.anim.dom.SVGOMSVGElement;
-import org.apache.batik.bridge.BridgeContext;
-import org.apache.batik.bridge.DocumentLoader;
-import org.apache.batik.bridge.GVTBuilder;
-import org.apache.batik.bridge.UserAgent;
-import org.apache.batik.bridge.UserAgentAdapter;
-import org.apache.batik.dom.svg.SVGItem;
-import org.apache.batik.util.XMLResourceDescriptor;
-import org.w3c.dom.Document;
-import org.w3c.dom.NodeList;
-import org.w3c.dom.svg.SVGDocument;
-import org.w3c.dom.svg.SVGPathSeg;
-import org.w3c.dom.svg.SVGPathSegCurvetoCubicAbs;
-import org.w3c.dom.svg.SVGPathSegLinetoAbs;
-import org.w3c.dom.svg.SVGPathSegList;
-import org.w3c.dom.svg.SVGPathSegMovetoAbs;
-
 import com.marginallyclever.gcode.GCodeFile;
+import com.marginallyclever.makelangelo.CommandLineOptions;
 import com.marginallyclever.makelangelo.Log;
 import com.marginallyclever.makelangelo.Translator;
 import com.marginallyclever.makelangeloRobot.ImageManipulator;
 import com.marginallyclever.makelangeloRobot.MakelangeloRobot;
+import org.apache.batik.anim.dom.SAXSVGDocumentFactory;
+import org.apache.batik.anim.dom.SVGOMPathElement;
+import org.apache.batik.anim.dom.SVGOMSVGElement;
+import org.apache.batik.bridge.*;
+import org.apache.batik.dom.svg.SVGItem;
+import org.apache.batik.util.XMLResourceDescriptor;
+import org.w3c.dom.Document;
+import org.w3c.dom.NodeList;
+import org.w3c.dom.svg.*;
+
+import javax.swing.filechooser.FileNameExtensionFilter;
+import java.io.*;
+import java.nio.charset.StandardCharsets;
 
 /**
  * Reads in DXF file and converts it to a temporary gcode file, then calls LoadGCode. 
@@ -76,7 +59,12 @@ public class LoadAndSaveSVG extends ImageManipulator implements LoadAndSaveFileT
 		// set up a temporary file
 		File tempFile;
 		try {
-			tempFile = File.createTempFile("temp", ".ngc");
+			String outputDir = CommandLineOptions.getOption("output");
+			File out = null;
+			if (outputDir != null) {
+				out = new File(outputDir);
+			}
+			tempFile = File.createTempFile("temp", ".ngc", out);
 		} catch (IOException e1) {
 			e1.printStackTrace();
 			return false;
